@@ -1,4 +1,3 @@
 PIPELINE_SOURCE_REPOSITORY_URL=https://github.com/Johnny2136/openshift-tasks.git
 PIPELINE_SOURCE_REPOSITORY_REF=eap-7
 NAME=openshift-tasks
-S2I_BASE_IMAGE=jboss-eap70-openshift:1.5
