@@ -9,15 +9,15 @@ metadata:
     iconClass: icon-cube
     tags: http
 objects:
-- apiVersion: v1
-  kind: ImageStream
+- kind: ImageStream
+  apiVersion: v1
   metadata:
     labels:
       build: "${NAME}"
     name: "${NAME}"
   spec: {}
-- apiVersion: v1
-  kind: DeploymentConfig
+- kind: DeploymentConfig
+  apiVersion: v1
   metadata:
     name: "${NAME}"
     labels:
@@ -73,8 +73,8 @@ objects:
           kind: ImageStreamTag
           name: "${NAME}:latest"
       type: ImageChange
-- apiVersion: v1
-  kind: Service
+- kind: Service
+  apiVersion: v1
   metadata:
     labels:
       name: "${NAME}"
@@ -97,8 +97,8 @@ objects:
       name: "${NAME}"
     sessionAffinity: None
     type: ClusterIP
-- apiVersion: v1
-  kind: Route
+- kind: Route
+  apiVersion: v1
   metadata:
     labels:
       name: "${NAME}"
@@ -111,8 +111,8 @@ objects:
       name: "${NAME}"
       weight: 100
     wildcardPolicy: None
-- apiVersion: v1
-  kind: RoleBinding
+- kind: RoleBinding
+  apiVersion: v1
   metadata:
     name: jenkins_pipeline_edit
   roleRef:
