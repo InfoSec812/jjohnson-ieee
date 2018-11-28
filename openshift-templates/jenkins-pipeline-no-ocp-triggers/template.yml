@@ -24,11 +24,9 @@ objects:
       jenkinsPipelineStrategy:
         env:
         - name: DEV_PROJECT
-          value: ${DEV_PROJECT}
+          value: 'labs-testdeven'
         - name: STAGE_PROJECT
-          value: ${STAGE_PROJECT}
-        - name: WITH_SONAR
-          value: ${WITH_SONAR}
+          value: 'labs-devdeven'
         jenkinsfile: |-
           def version, mvnCmd = "mvn"
           pipeline {
@@ -38,7 +36,6 @@ objects:
             stages {
               stage('Build App') {
                 steps {
-                  git branch: 'eap-7', url: 'http://gogs:3000/gogs/openshift-tasks.git'
                   script {
                       def pom = readMavenPom file: 'pom.xml'
                       version = pom.version
@@ -55,23 +52,11 @@ objects:
               stage('Code Analysis') {
                 steps {
                   script {
-                    if (env.WITH_SONAR.toBoolean()) {
-                      sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000 -DskipTests=true"
-                    } else {
-                      sh "${mvnCmd} site -DskipTests=true"
-                      
-                      step([$class: 'CheckStylePublisher', unstableTotalAll:'300'])
-                      step([$class: 'PmdPublisher', unstableTotalAll:'20'])
-                      step([$class: 'FindBugsPublisher', pattern: '**/findbugsXml.xml', unstableTotalAll:'20'])
-                      step([$class: 'JacocoPublisher'])
-                      publishHTML (target: [keepAll: true, reportDir: 'target/site', reportFiles: 'project-info.html', reportName: "Site Report"])
+                    withSonarQubeEnv {
+                      sh "${mvnCmd} sonar:sonar -DskipTests=true"
+                      waitForQualityGate abortPipeline: true
                     }
                   }
-                }
-              }
-              stage('Archive App') {
-                steps {
-                  sh "${mvnCmd} deploy -DskipTests=true -P nexus3"
                 }
               }
               stage('Create Image Builder') {
