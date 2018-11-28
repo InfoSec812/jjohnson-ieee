@@ -14,6 +14,8 @@ objects:
     name: "${NAME}-pipeline"
   spec:
     runPolicy: "${RUN_POLICY}"
+    triggers:
+    - type: "ConfigChange"
     source:
       contextDir: "${PIPELINE_CONTEXT_DIR}"
       git:
@@ -22,13 +24,18 @@ objects:
       type: Git
     strategy:
       jenkinsPipelineStrategy:
-        env:
-        - name: DEV_PROJECT
-          value: 'labs-testdeven'
-        - name: STAGE_PROJECT
-          value: 'labs-devdeven'
-        jenkinsfile: |-
-          def version, mvnCmd = "mvn"
+        jenkinsfile: |
+          def mvnCmd = "mvn"
+          def ciProject = 'labs-ci-cd'
+          def testProject = 'labs-test'
+          def devProject = 'labs-dev'
+          openshift.withCluster() {
+              openshift.withProject() {
+                  ciProject = openshift.project()
+                  testProject = ciProject.replaceFirst(/^labs-ci-cd/, 'labs-test')
+                  devProject = ciProject.replaceFirst(/^labs-ci-cd/, 'labs-dev')
+              }
+          }
           pipeline {
             agent {
               label 'maven'
@@ -36,10 +43,7 @@ objects:
             stages {
               stage('Build App') {
                 steps {
-                  script {
-                      def pom = readMavenPom file: 'pom.xml'
-                      version = pom.version
-                  }
+                  git branch: '${PIPELINE_SOURCE_REPOSITORY_REF}', poll: false, url: '${PIPELINE_SOURCE_REPOSITORY_URL}'
                   sh "${mvnCmd} install -DskipTests=true"
                 }
               }
@@ -54,7 +58,6 @@ objects:
                   script {
                     withSonarQubeEnv {
                       sh "${mvnCmd} sonar:sonar -DskipTests=true"
-                      waitForQualityGate abortPipeline: true
                     }
                   }
                 }
@@ -63,7 +66,7 @@ objects:
                 when {
                   expression {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         return !openshift.selector("bc", "tasks").exists();
                       }
                     }
@@ -72,7 +75,7 @@ objects:
                 steps {
                   script {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         openshift.newBuild("--name=tasks", "--image-stream=jboss-eap70-openshift:1.5", "--binary=true")
                       }
                     }
@@ -86,7 +89,7 @@ objects:
                   
                   script {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         openshift.selector("bc", "tasks").startBuild("--from-dir=oc-build", "--wait=true")
                       }
                     }
@@ -97,7 +100,7 @@ objects:
                 when {
                   expression {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         return !openshift.selector('dc', 'tasks').exists()
                       }
                     }
@@ -106,7 +109,7 @@ objects:
                 steps {
                   script {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         def app = openshift.newApp("tasks:latest")
                         app.narrow("svc").expose();
                         def dc = openshift.selector("dc", "tasks")
@@ -123,7 +126,7 @@ objects:
                 steps {
                   script {
                     openshift.withCluster() {
-                      openshift.withProject(env.DEV_PROJECT) {
+                      openshift.withProject(testProject) {
                         openshift.selector("dc", "tasks").rollout().latest();
                       }
                     }
@@ -137,7 +140,7 @@ objects:
                   }
                   script {
                     openshift.withCluster() {
-                      openshift.tag("${env.DEV_PROJECT}/tasks:latest", "${env.STAGE_PROJECT}/tasks:${version}")
+                      openshift.tag("${testProject}/tasks:latest", "${devProject}/tasks:latest")
                     }
                   }
                 }
@@ -146,13 +149,13 @@ objects:
                 steps {
                   script {
                     openshift.withCluster() {
-                      openshift.withProject(env.STAGE_PROJECT) {
+                      openshift.withProject(devProject) {
                         if (openshift.selector('dc', 'tasks').exists()) {
                           openshift.selector('dc', 'tasks').delete()
                           openshift.selector('svc', 'tasks').delete()
                           openshift.selector('route', 'tasks').delete()
                         }
-                        openshift.newApp("tasks:${version}").narrow("svc").expose()
+                        openshift.newApp("tasks:latest").narrow("svc").expose()
                       }
                     }
                   }
