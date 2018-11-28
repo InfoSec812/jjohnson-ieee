@@ -21,14 +21,14 @@ openshift_cluster_content:
 - object: jenkins-slave-nodes
   content:
   - name: jenkins-slave-mvn
-    template: "https://raw.githubusercontent.com/redhat-cop/containers-quickstarts/v1.3/jenkins-slaves/templates/jenkins-slave-generic-template.yml"
+    template: "{{ playbook_dir }}/openshift-templates/jenkins-slave-pod/template.yml"
     params: "{{ playbook_dir }}/params/jenkins-slaves/mvn"
     namespace: "{{ ci_cd_namespace }}"
     tags:
     - jenkins-slaves
     - mvn-slave
   - name: jenkins-slave-npm
-    template: "https://raw.githubusercontent.com/redhat-cop/containers-quickstarts/v1.3/jenkins-slaves/templates/jenkins-slave-generic-template.yml"
+    template: "{{ playbook_dir }}/openshift-templates/jenkins-slave-pod/template.yml"
     params: "{{ playbook_dir }}/params/jenkins-slaves/npm"
     namespace: "{{ ci_cd_namespace }}"
     tags:
