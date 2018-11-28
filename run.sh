@@ -34,21 +34,9 @@ function printBanner(){
 ###########################
 printBanner
 
-if [[ "$#" == 0 ]]; then
-    DOCKER_RUN_COMMAND='ansible-playbook -i /tmp/src/inventory /tmp/src/apply.yml -e target=bootstrap && ansible-playbook -i /tmp/src/inventory /tmp/src/apply.yml -e target=tools'
-    printf "no arguments passed to run.sh. using default docker run command:\n- $DOCKER_RUN_COMMAND\n\n"
-else
-    DOCKER_RUN_COMMAND="$@"
-    printf "using arguments passed to run.sh for docker run command:\n\t$DOCKER_RUN_COMMAND\n\n"
-    
-fi 
+ansible-galaxy install -r requirements.yml --roles-path=roles
 
-DOCKER_RUN_COMMAND="ansible-galaxy install -r /tmp/src/requirements.yml --roles-path=/tmp/src/roles && $DOCKER_RUN_COMMAND"
-
-docker run --rm -i \
-    -v $(pwd):/tmp/src:z \
-    -v $HOME/.kube:/root/.kube:z \
-    -t quay.io/redhat-cop/openshift-applier:v2.0.6 \
-    /bin/sh -c "$DOCKER_RUN_COMMAND"
-
-
+for I in bootstrap tools apps
+do
+    ansible-playbook unique-projects-playbook.yml -i inventory/ -e project_name_postfix=deven -e target=${I}
+done
