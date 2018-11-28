@@ -6,19 +6,19 @@ openshift_cluster_content:
 - object: projectrequest
   content:
   - name: ci-cd
-    template: "{{ playbook_dir }}/openshift-templates/project-requests/template.yml"
+    template: "{{ playbook_dir }}/openshift-templates/project-request/template.yml"
     action: create
     params: "{{ playbook_dir }}/params/projectrequests/ci-cd"
     tags:
     - projects
   - name: dev
-    template: "{{ playbook_dir }}/openshift-templates/project-requests/template.yml"
+    template: "{{ playbook_dir }}/openshift-templates/project-request/template.yml"
     action: create
     params: "{{ playbook_dir }}/params/projectrequests/dev"
     tags:
     - projects
   - name: demo
-    template: "{{ playbook_dir }}/openshift-templates/project-requests/template.yml"
+    template: "{{ playbook_dir }}/openshift-templates/project-request/template.yml"
     action: create
     params: "{{ playbook_dir }}/params/projectrequests/test"
     tags:
